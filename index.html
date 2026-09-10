@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="ru">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -15,6 +16,7 @@
 
         body {
             min-height: 100vh;
+
             background:
                 radial-gradient(
                     circle at 50% 0%,
@@ -24,7 +26,11 @@
                 );
 
             color: white;
-            font-family: Arial, Helvetica, sans-serif;
+
+            font-family:
+                Arial,
+                Helvetica,
+                sans-serif;
 
             padding: 45px 20px;
         }
@@ -47,12 +53,13 @@
 
             margin-bottom: 8px;
 
-            background: linear-gradient(
-                90deg,
-                #ffffff,
-                #879aff,
-                #ffffff
-            );
+            background:
+                linear-gradient(
+                    90deg,
+                    #ffffff,
+                    #879aff,
+                    #ffffff
+                );
 
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
@@ -96,9 +103,10 @@
         /* ПАПКА */
 
         .folder-header {
-            height: 70px;
+            min-height: 70px;
 
             display: flex;
+
             align-items: center;
 
             padding: 0 25px;
@@ -112,13 +120,11 @@
 
         .folder-icon {
             font-size: 27px;
-
             margin-right: 13px;
         }
 
         .folder-name {
             font-size: 19px;
-
             font-weight: 700;
         }
 
@@ -130,12 +136,19 @@
             font-size: 14px;
         }
 
+        /* СПИСОК */
+
+        #file-list {
+            width: 100%;
+        }
+
         /* ФАЙЛ */
 
         .file {
             min-height: 76px;
 
             display: flex;
+
             align-items: center;
 
             padding: 15px 20px;
@@ -163,10 +176,12 @@
             height: 45px;
 
             display: flex;
+
             align-items: center;
             justify-content: center;
 
-            background: #252a3a;
+            background:
+                #252a3a;
 
             border-radius: 12px;
 
@@ -207,11 +222,10 @@
             margin-top: 5px;
         }
 
-        /* КНОПКА СКАЧАТЬ */
+        /* КНОПКА */
 
         .download {
             border: none;
-
             outline: none;
 
             background:
@@ -264,6 +278,44 @@
                 scale(0.95);
         }
 
+        /* ЗАГРУЗКА */
+
+        .loading {
+            padding: 35px 20px;
+
+            text-align: center;
+
+            color: #747d91;
+
+            font-size: 14px;
+        }
+
+        /* НЕТ ФАЙЛОВ */
+
+        .empty {
+            padding: 40px 20px;
+
+            text-align: center;
+
+            color: #747d91;
+
+            font-size: 14px;
+        }
+
+        /* ОШИБКА */
+
+        .error {
+            padding: 30px 20px;
+
+            text-align: center;
+
+            color: #ff7b7b;
+
+            font-size: 14px;
+
+            line-height: 1.6;
+        }
+
         /* СООБЩЕНИЕ */
 
         .message {
@@ -300,6 +352,8 @@
                 all 0.3s ease;
 
             z-index: 100;
+
+            pointer-events: none;
         }
 
         .message.show {
@@ -361,6 +415,7 @@
     </style>
 </head>
 
+
 <body>
 
 <div class="container">
@@ -390,42 +445,24 @@
                 files
             </div>
 
-            <div class="file-count">
-                1 файл
+            <div
+                class="file-count"
+                id="file-count">
+
+                Загрузка...
+
             </div>
 
         </div>
 
 
-        <!-- ФАЙЛ -->
+        <!-- СЮДА JAVASCRIPT ДОБАВИТ ФАЙЛЫ -->
 
-        <div class="file">
+        <div id="file-list">
 
-            <div class="file-icon">
-                📜
+            <div class="loading">
+                Загрузка файлов...
             </div>
-
-
-            <div class="file-info">
-
-                <div class="file-name">
-                    Lan1yaScripts.lua
-                </div>
-
-                <div class="file-type">
-                    Lua Script
-                </div>
-
-            </div>
-
-
-            <button
-                class="download"
-                onclick="downloadFile()">
-
-                Скачать
-
-            </button>
 
         </div>
 
@@ -447,67 +484,860 @@
 
 <script>
 
-async function downloadFile() {
-    const message = document.getElementById("message");
-    const button = document.querySelector(".download");
+/*
+==================================================
+ НАСТРОЙКИ
+==================================================
+*/
 
-    try {
-        message.textContent = "Подготовка файла...";
-        message.classList.add("show");
-        button.disabled = true;
-        button.style.opacity = "0.7";
-        button.textContent = "Загрузка...";
 
-        const fileUrl = new URL(
-            "./files/Lan1yaScripts.lua",
-            window.location.href
-        ).href;
+/*
+ Папка с файлами в репозитории
+*/
 
-        const response = await fetch(fileUrl, {
-            cache: "no-store"
-        });
+const FILES_FOLDER = "files";
 
-        if (!response.ok) {
-            throw new Error("HTTP " + response.status);
+
+/*
+ Через сколько автоматически обновлять каталог.
+
+ 60000 = 1 минута
+*/
+
+const UPDATE_INTERVAL = 60000;
+
+
+/*
+==================================================
+ ОПРЕДЕЛЯЕМ GITHUB REPOSITORY
+==================================================
+*/
+
+function getGitHubRepository() {
+
+    const hostname = window.location.hostname;
+
+    const pathname =
+        window.location.pathname
+        .split("/")
+        .filter(Boolean);
+
+
+    /*
+    Сайт вида:
+
+    username.github.io
+
+    Тогда репозиторий обычно:
+
+    username/username.github.io
+    */
+
+    if (
+        hostname.endsWith(".github.io")
+    ) {
+
+        const username =
+            hostname.split(".")[0];
+
+        /*
+        Если это:
+
+        username.github.io
+
+        без дополнительной папки
+        */
+
+        if (pathname.length === 0) {
+
+            return {
+                owner: username,
+                repo: username + ".github.io"
+            };
+
         }
 
-        const blob = await response.blob();
 
-        const blobUrl = URL.createObjectURL(blob);
-        const link = document.createElement("a");
+        /*
+        Если сайт вида:
 
-        link.href = blobUrl;
-        link.download = "Lan1yaScripts.lua";
-        link.style.display = "none";
+        username.github.io/my-site/
+        */
 
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
+        return {
+            owner: username,
+            repo: pathname[0]
+        };
 
-        setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+    }
 
-        message.textContent = "✓ Файл скачивается";
 
-        setTimeout(() => {
-            message.classList.remove("show");
-        }, 2500);
+    /*
+    Если используется другой домен,
+    можно указать repository вручную.
+
+    Например:
+
+    owner: "MyUsername"
+    repo: "MyRepository"
+    */
+
+    return {
+        owner: "",
+        repo: ""
+    };
+}
+
+
+/*
+==================================================
+ ПОЛУЧАЕМ REPOSITORY
+==================================================
+*/
+
+const repository =
+    getGitHubRepository();
+
+
+/*
+==================================================
+ ПОЛУЧЕНИЕ ФАЙЛОВ
+==================================================
+*/
+
+async function loadFiles() {
+
+    const fileList =
+        document.getElementById("file-list");
+
+    const fileCount =
+        document.getElementById("file-count");
+
+
+    /*
+    Проверяем repository
+    */
+
+    if (
+        !repository.owner ||
+        !repository.repo
+    ) {
+
+        fileList.innerHTML = `
+            <div class="error">
+                Не удалось определить GitHub Repository.
+                <br><br>
+                Если используется собственный домен,
+                укажи owner и repo в коде.
+            </div>
+        `;
+
+        fileCount.textContent = "Ошибка";
+
+        return;
+    }
+
+
+    try {
+
+        /*
+        GitHub API
+
+        Получаем содержимое папки files
+        */
+
+        const apiUrl =
+            `https://api.github.com/repos/` +
+            `${repository.owner}/` +
+            `${repository.repo}/contents/` +
+            `${FILES_FOLDER}?t=${Date.now()}`;
+
+
+        const response =
+            await fetch(apiUrl, {
+                cache: "no-store"
+            });
+
+
+        /*
+        Проверяем ответ
+        */
+
+        if (!response.ok) {
+
+            throw new Error(
+                "GitHub API HTTP " +
+                response.status
+            );
+
+        }
+
+
+        const data =
+            await response.json();
+
+
+        /*
+        Проверяем, что GitHub
+        действительно вернул массив
+        */
+
+        if (!Array.isArray(data)) {
+
+            throw new Error(
+                "Папка files не найдена"
+            );
+
+        }
+
+
+        /*
+        Оставляем только файлы.
+
+        Папки игнорируем.
+        */
+
+        const files =
+            data.filter(
+                item => item.type === "file"
+            );
+
+
+        /*
+        Сортировка по названию
+        */
+
+        files.sort(
+            (a, b) =>
+                a.name.localeCompare(
+                    b.name,
+                    "ru",
+                    {
+                        numeric: true,
+                        sensitivity: "base"
+                    }
+                )
+        );
+
+
+        /*
+        Количество файлов
+        */
+
+        fileCount.textContent =
+            getFileCountText(files.length);
+
+
+        /*
+        Если файлов нет
+        */
+
+        if (files.length === 0) {
+
+            fileList.innerHTML = `
+                <div class="empty">
+                    📂 Папка files пуста
+                </div>
+            `;
+
+            return;
+        }
+
+
+        /*
+        Создаём HTML каталога
+        */
+
+        fileList.innerHTML =
+            files
+                .map(createFileHTML)
+                .join("");
+
 
     } catch (error) {
-        console.error("Ошибка скачивания:", error);
 
-        message.textContent =
-            "Не удалось скачать файл. Проверь папку files.";
+        console.error(
+            "Ошибка загрузки каталога:",
+            error
+        );
 
-        setTimeout(() => {
-            message.classList.remove("show");
-        }, 3500);
 
-    } finally {
-        button.disabled = false;
-        button.style.opacity = "1";
-        button.textContent = "Скачать";
+        fileList.innerHTML = `
+            <div class="error">
+                ❌ Не удалось загрузить список файлов.
+                <br><br>
+                Проверь, что папка
+                <b>files</b>
+                существует в репозитории.
+            </div>
+        `;
+
+        fileCount.textContent =
+            "Ошибка";
     }
 }
+
+
+/*
+==================================================
+ СОЗДАНИЕ ФАЙЛА
+==================================================
+*/
+
+function createFileHTML(file) {
+
+    const fileName =
+        escapeHTML(file.name);
+
+
+    const extension =
+        getExtension(file.name);
+
+
+    const fileType =
+        getFileType(file.name);
+
+
+    const icon =
+        getFileIcon(file.name);
+
+
+    /*
+    GitHub raw URL
+
+    Используем download_url,
+    который отдаёт GitHub API.
+    */
+
+    const downloadURL =
+        file.download_url;
+
+
+    return `
+
+        <div class="file">
+
+            <div class="file-icon">
+                ${icon}
+            </div>
+
+
+            <div class="file-info">
+
+                <div
+                    class="file-name"
+                    title="${fileName}">
+
+                    ${fileName}
+
+                </div>
+
+
+                <div class="file-type">
+
+                    ${fileType}
+
+                    ${
+                        extension
+                        ? " • ." + extension
+                        : ""
+                    }
+
+                </div>
+
+            </div>
+
+
+            <button
+                class="download"
+                onclick='downloadFile(
+                    ${JSON.stringify(downloadURL)},
+                    ${JSON.stringify(file.name)}
+                )'>
+
+                Скачать
+
+            </button>
+
+        </div>
+
+    `;
+}
+
+
+/*
+==================================================
+ СКАЧИВАНИЕ
+==================================================
+*/
+
+async function downloadFile(
+    fileUrl,
+    fileName
+) {
+
+    const message =
+        document.getElementById("message");
+
+
+    /*
+    Находим нажатую кнопку
+    */
+
+    const buttons =
+        document.querySelectorAll(".download");
+
+
+    let currentButton = null;
+
+
+    buttons.forEach(button => {
+
+        /*
+        Ничего не делаем,
+        если кнопка не найдена
+        */
+
+    });
+
+
+    try {
+
+        message.textContent =
+            "Подготовка файла...";
+
+        message.classList.add("show");
+
+
+        /*
+        Загружаем файл
+        */
+
+        const response =
+            await fetch(
+                fileUrl,
+                {
+                    cache: "no-store"
+                }
+            );
+
+
+        if (!response.ok) {
+
+            throw new Error(
+                "HTTP " +
+                response.status
+            );
+
+        }
+
+
+        const blob =
+            await response.blob();
+
+
+        /*
+        Создаём временный URL
+        */
+
+        const blobUrl =
+            URL.createObjectURL(blob);
+
+
+        /*
+        Создаём ссылку
+        */
+
+        const link =
+            document.createElement("a");
+
+
+        link.href =
+            blobUrl;
+
+        link.download =
+            fileName;
+
+        link.style.display =
+            "none";
+
+
+        document.body.appendChild(
+            link
+        );
+
+
+        /*
+        Запускаем скачивание
+        */
+
+        link.click();
+
+
+        /*
+        Удаляем ссылку
+        */
+
+        link.remove();
+
+
+        /*
+        Освобождаем память
+        */
+
+        setTimeout(() => {
+
+            URL.revokeObjectURL(
+                blobUrl
+            );
+
+        }, 1000);
+
+
+        /*
+        Сообщение
+        */
+
+        message.textContent =
+            "✓ Файл скачивается";
+
+
+        setTimeout(() => {
+
+            message.classList.remove(
+                "show"
+            );
+
+        }, 2500);
+
+
+    } catch (error) {
+
+        console.error(
+            "Ошибка скачивания:",
+            error
+        );
+
+
+        /*
+        Если fetch не сработал,
+        просто открываем файл.
+        */
+
+        window.open(
+            fileUrl,
+            "_blank"
+        );
+
+
+        message.textContent =
+            "Файл открыт";
+
+
+        setTimeout(() => {
+
+            message.classList.remove(
+                "show"
+            );
+
+        }, 2500);
+    }
+}
+
+
+/*
+==================================================
+ ОПРЕДЕЛЕНИЕ РАСШИРЕНИЯ
+==================================================
+*/
+
+function getExtension(fileName) {
+
+    const parts =
+        fileName.split(".");
+
+
+    if (parts.length < 2) {
+        return "";
+    }
+
+
+    return parts
+        .pop()
+        .toLowerCase();
+}
+
+
+/*
+==================================================
+ ТИП ФАЙЛА
+==================================================
+*/
+
+function getFileType(fileName) {
+
+    const extension =
+        getExtension(fileName);
+
+
+    const types = {
+
+        lua: "Lua Script",
+
+        js: "JavaScript",
+
+        html: "HTML",
+
+        css: "CSS",
+
+        json: "JSON",
+
+        txt: "Текстовый файл",
+
+        pdf: "PDF документ",
+
+        zip: "ZIP архив",
+
+        rar: "RAR архив",
+
+        "7z": "7Z архив",
+
+        exe: "Windows приложение",
+
+        apk: "Android приложение",
+
+        mp3: "Аудиофайл",
+
+        wav: "Аудиофайл",
+
+        mp4: "Видео",
+
+        webm: "Видео",
+
+        jpg: "Изображение",
+
+        jpeg: "Изображение",
+
+        png: "Изображение",
+
+        gif: "GIF изображение",
+
+        webp: "Изображение",
+
+        doc: "Документ",
+
+        docx: "Word документ",
+
+        xls: "Excel таблица",
+
+        xlsx: "Excel таблица",
+
+        ppt: "PowerPoint",
+
+        pptx: "PowerPoint"
+
+    };
+
+
+    return (
+        types[extension] ||
+        "Файл"
+    );
+}
+
+
+/*
+==================================================
+ ИКОНКА
+==================================================
+*/
+
+function getFileIcon(fileName) {
+
+    const extension =
+        getExtension(fileName);
+
+
+    const icons = {
+
+        lua: "📜",
+
+        js: "📜",
+
+        html: "🌐",
+
+        css: "🎨",
+
+        json: "📋",
+
+        txt: "📄",
+
+        pdf: "📕",
+
+        zip: "🗜️",
+
+        rar: "🗜️",
+
+        "7z": "🗜️",
+
+        exe: "⚙️",
+
+        apk: "📱",
+
+        mp3: "🎵",
+
+        wav: "🎵",
+
+        mp4: "🎬",
+
+        webm: "🎬",
+
+        jpg: "🖼️",
+
+        jpeg: "🖼️",
+
+        png: "🖼️",
+
+        gif: "🖼️",
+
+        webp: "🖼️",
+
+        doc: "📘",
+
+        docx: "📘",
+
+        xls: "📊",
+
+        xlsx: "📊",
+
+        ppt: "📙",
+
+        pptx: "📙"
+
+    };
+
+
+    return (
+        icons[extension] ||
+        "📄"
+    );
+}
+
+
+/*
+==================================================
+ ПРАВИЛЬНОЕ КОЛИЧЕСТВО
+==================================================
+*/
+
+function getFileCountText(count) {
+
+    if (
+        count % 10 === 1 &&
+        count % 100 !== 11
+    ) {
+
+        return count + " файл";
+
+    }
+
+
+    if (
+        count >= 2 &&
+        count <= 4
+    ) {
+
+        return count + " файла";
+
+    }
+
+
+    return count + " файлов";
+}
+
+
+/*
+==================================================
+ ЗАЩИТА HTML
+==================================================
+*/
+
+function escapeHTML(text) {
+
+    return String(text)
+
+        .replace(
+            /&/g,
+            "&amp;"
+        )
+
+        .replace(
+            /</g,
+            "&lt;"
+        )
+
+        .replace(
+            />/g,
+            "&gt;"
+        )
+
+        .replace(
+            /"/g,
+            "&quot;"
+        )
+
+        .replace(
+            /'/g,
+            "&#039;"
+        );
+}
+
+
+/*
+==================================================
+ ПЕРВАЯ ЗАГРУЗКА
+==================================================
+*/
+
+loadFiles();
+
+
+/*
+==================================================
+ АВТОМАТИЧЕСКОЕ ОБНОВЛЕНИЕ
+==================================================
+
+Каждую минуту проверяем GitHub
+на наличие новых файлов.
+*/
+
+setInterval(
+    loadFiles,
+    UPDATE_INTERVAL
+);
+
+
+/*
+==================================================
+ ОБНОВЛЕНИЕ ПРИ ВОЗВРАЩЕНИИ НА ВКЛАДКУ
+==================================================
+*/
+
+document.addEventListener(
+    "visibilitychange",
+    () => {
+
+        if (
+            document.visibilityState ===
+            "visible"
+        ) {
+
+            loadFiles();
+
+        }
+
+    }
+);
 
 </script>
 
