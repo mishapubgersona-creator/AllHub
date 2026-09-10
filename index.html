@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>AllHub</title>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            background:
+                radial-gradient(
+                    circle at 50% 0%,
+                    #29314a 0%,
+                    #111520 45%,
+                    #080a0f 100%
+                );
+
+            color: white;
+            font-family: Arial, Helvetica, sans-serif;
+
+            padding: 45px 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        /* ЛОГОТИП */
+
+        .logo {
+            text-align: center;
+
+            font-size: 58px;
+            font-weight: 900;
+
+            letter-spacing: -3px;
+
+            margin-bottom: 8px;
+
+            background: linear-gradient(
+                90deg,
+                #ffffff,
+                #879aff,
+                #ffffff
+            );
+
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+
+            text-shadow:
+                0 0 35px rgba(90, 110, 255, 0.25);
+        }
+
+        .subtitle {
+            text-align: center;
+
+            color: #858da0;
+
+            font-size: 15px;
+
+            margin-bottom: 35px;
+        }
+
+        /* КОНТЕЙНЕР ФАЙЛОВ */
+
+        .files-box {
+            width: 100%;
+
+            background:
+                rgba(17, 21, 31, 0.9);
+
+            border:
+                1px solid rgba(255,255,255,0.08);
+
+            border-radius: 20px;
+
+            overflow: hidden;
+
+            box-shadow:
+                0 25px 70px rgba(0,0,0,0.5),
+                inset 0 1px 0 rgba(255,255,255,0.03);
+
+            backdrop-filter: blur(20px);
+        }
+
+        /* ПАПКА */
+
+        .folder-header {
+            height: 70px;
+
+            display: flex;
+            align-items: center;
+
+            padding: 0 25px;
+
+            background:
+                rgba(255,255,255,0.025);
+
+            border-bottom:
+                1px solid rgba(255,255,255,0.07);
+        }
+
+        .folder-icon {
+            font-size: 27px;
+
+            margin-right: 13px;
+        }
+
+        .folder-name {
+            font-size: 19px;
+
+            font-weight: 700;
+        }
+
+        .file-count {
+            margin-left: auto;
+
+            color: #747d91;
+
+            font-size: 14px;
+        }
+
+        /* ФАЙЛ */
+
+        .file {
+            min-height: 76px;
+
+            display: flex;
+            align-items: center;
+
+            padding: 15px 20px;
+
+            border-bottom:
+                1px solid rgba(255,255,255,0.055);
+
+            transition:
+                background 0.2s ease;
+        }
+
+        .file:last-child {
+            border-bottom: none;
+        }
+
+        .file:hover {
+            background:
+                rgba(255,255,255,0.045);
+        }
+
+        /* ИКОНКА ФАЙЛА */
+
+        .file-icon {
+            width: 45px;
+            height: 45px;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            background: #252a3a;
+
+            border-radius: 12px;
+
+            font-size: 22px;
+
+            margin-right: 15px;
+
+            flex-shrink: 0;
+        }
+
+        /* ИНФОРМАЦИЯ */
+
+        .file-info {
+            flex: 1;
+
+            min-width: 0;
+        }
+
+        .file-name {
+            color: white;
+
+            font-size: 16px;
+
+            font-weight: 600;
+
+            white-space: nowrap;
+
+            overflow: hidden;
+
+            text-overflow: ellipsis;
+        }
+
+        .file-type {
+            color: #747d90;
+
+            font-size: 13px;
+
+            margin-top: 5px;
+        }
+
+        /* КНОПКА СКАЧАТЬ */
+
+        .download {
+            border: none;
+
+            outline: none;
+
+            background:
+                linear-gradient(
+                    135deg,
+                    #5b6fff,
+                    #4054e8
+                );
+
+            color: white;
+
+            padding: 11px 19px;
+
+            border-radius: 10px;
+
+            font-size: 14px;
+
+            font-weight: 700;
+
+            cursor: pointer;
+
+            transition:
+                all 0.2s ease;
+
+            box-shadow:
+                0 5px 18px
+                rgba(70,90,255,0.25);
+
+            flex-shrink: 0;
+        }
+
+        .download:hover {
+            transform:
+                translateY(-2px);
+
+            background:
+                linear-gradient(
+                    135deg,
+                    #6c7eff,
+                    #4c60f2
+                );
+
+            box-shadow:
+                0 8px 25px
+                rgba(70,90,255,0.45);
+        }
+
+        .download:active {
+            transform:
+                scale(0.95);
+        }
+
+        /* СООБЩЕНИЕ */
+
+        .message {
+            position: fixed;
+
+            left: 50%;
+            bottom: 30px;
+
+            transform:
+                translate(-50%, 100px);
+
+            background:
+                #202636;
+
+            border:
+                1px solid
+                rgba(255,255,255,0.1);
+
+            color: white;
+
+            padding: 14px 22px;
+
+            border-radius: 12px;
+
+            font-size: 14px;
+
+            box-shadow:
+                0 10px 35px
+                rgba(0,0,0,0.4);
+
+            opacity: 0;
+
+            transition:
+                all 0.3s ease;
+
+            z-index: 100;
+        }
+
+        .message.show {
+            opacity: 1;
+
+            transform:
+                translate(-50%, 0);
+        }
+
+        /* МОБИЛЬНАЯ ВЕРСИЯ */
+
+        @media (max-width: 600px) {
+
+            body {
+                padding:
+                    25px 12px;
+            }
+
+            .logo {
+                font-size: 43px;
+            }
+
+            .subtitle {
+                margin-bottom: 25px;
+            }
+
+            .folder-header {
+                padding:
+                    0 17px;
+            }
+
+            .file {
+                padding:
+                    13px;
+            }
+
+            .file-icon {
+                width: 40px;
+                height: 40px;
+
+                margin-right: 10px;
+            }
+
+            .file-name {
+                font-size: 14px;
+            }
+
+            .file-type {
+                font-size: 12px;
+            }
+
+            .download {
+                padding:
+                    9px 12px;
+
+                font-size: 12px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <!-- НАЗВАНИЕ -->
+
+    <div class="logo">
+        AllHub
+    </div>
+
+    <div class="subtitle">
+        Файловый каталог
+    </div>
+
+
+    <!-- ПАПКА -->
+
+    <div class="files-box">
+
+        <div class="folder-header">
+
+            <div class="folder-icon">
+                📁
+            </div>
+
+            <div class="folder-name">
+                files
+            </div>
+
+            <div class="file-count">
+                1 файл
+            </div>
+
+        </div>
+
+
+        <!-- ФАЙЛ -->
+
+        <div class="file">
+
+            <div class="file-icon">
+                📜
+            </div>
+
+
+            <div class="file-info">
+
+                <div class="file-name">
+                    Lan1yaScripts.lua
+                </div>
+
+                <div class="file-type">
+                    Lua Script
+                </div>
+
+            </div>
+
+
+            <button
+                class="download"
+                onclick="downloadFile()">
+
+                Скачать
+
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- УВЕДОМЛЕНИЕ -->
+
+<div
+    class="message"
+    id="message">
+
+    Подготовка файла...
+
+</div>
+
+
+<script>
+
+async function downloadFile() {
+    const message = document.getElementById("message");
+    const button = document.querySelector(".download");
+
+    try {
+        message.textContent = "Подготовка файла...";
+        message.classList.add("show");
+        button.disabled = true;
+        button.style.opacity = "0.7";
+        button.textContent = "Загрузка...";
+
+        const fileUrl = new URL(
+            "./files/Lan1yaScripts.lua",
+            window.location.href
+        ).href;
+
+        const response = await fetch(fileUrl, {
+            cache: "no-store"
+        });
+
+        if (!response.ok) {
+            throw new Error("HTTP " + response.status);
+        }
+
+        const blob = await response.blob();
+
+        const blobUrl = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+
+        link.href = blobUrl;
+        link.download = "Lan1yaScripts.lua";
+        link.style.display = "none";
+
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+
+        message.textContent = "✓ Файл скачивается";
+
+        setTimeout(() => {
+            message.classList.remove("show");
+        }, 2500);
+
+    } catch (error) {
+        console.error("Ошибка скачивания:", error);
+
+        message.textContent =
+            "Не удалось скачать файл. Проверь папку files.";
+
+        setTimeout(() => {
+            message.classList.remove("show");
+        }, 3500);
+
+    } finally {
+        button.disabled = false;
+        button.style.opacity = "1";
+        button.textContent = "Скачать";
+    }
+}
+
+</script>
+
+</body>
+</html>
